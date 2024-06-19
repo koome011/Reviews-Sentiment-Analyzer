@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentiment Analysis Visualization</title>
+    <!-- CSS for styling the page -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f2f2f2;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: auto;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        p {
+            margin-bottom: 10px;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #fff;
+            font-size: 16px;
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: #4CAF50;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #pie-chart-container {
+            text-align: center;
+        }
+
+        #pie-chart {
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+
+        .legend {
+            display: inline-block;
+            vertical-align: top;
+            margin-left: 20px;
+        }
+
+        .legend-item {
+            margin-bottom: 5px;
+        }
+
+        .legend-color {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Sentiment Analysis Visualization</h1>
+        <p>Select a product:</p>
+        <select id="product-select">
+            {% for product in products %}
+                <option value="{{ product }}">{{ product }}</option>
+            {% endfor %}
+        </select>
+        <button id="analyze-button">Analyze</button>
+        <div id="pie-chart-container">
+            <canvas id="pie-chart"></canvas>
+            <div class="legend" id="legend-container"></div>
+        </div>
+    </div>
+
+    <!-- JavaScript for handling product selection and AJAX request -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var productSelect = document.getElementById('product-select');
+            var analyzeButton = document.getElementById('analyze-button');
+
+            analyzeButton.addEventListener('click', function() {
+                var selectedProduct = productSelect.value;
+                fetch('/get_sentiment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        product: selectedProduct
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    drawPieChart(data);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            });
+
+            function drawPieChart(data) {
+                var labels = Object.keys(data);
+                var values = Object.values(data);
+
+                var ctx = document.getElementById('pie-chart').getContext('2d');
+                var pieChart = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: values,
+                            backgroundColor: ['#36A2EB', '#FFCE56', '#FF6384'],
+                            hoverBackgroundColor: ['#36A2EB', '#FFCE56', '#FF6384']
+                        }]
+                    },
+                    options: {
+                        title: {
+                            display: true,
+                            text: 'Sentiment Distribution'
+                        }
+                    }
+                });
+
+                // Update legend with percentage values
+                var legendContainer = document.getElementById('legend-container');
+                legendContainer.innerHTML = '';
+                labels.forEach(function(label, index) {
+                    var legendItem = document.createElement('div');
+                    legendItem.classList.add('legend-item');
+
+                    var legendColor = document.createElement('span');
+                    legendColor.classList.add('legend-color');
+                    legendColor.style.backgroundColor = pieChart.data.datasets[0].backgroundColor[index];
+
+                    var legendText = document.createElement('span');
+                    legendText.textContent = label + ' (' + (values[index] * 100).toFixed(1) + '%)';
+
+                    legendItem.appendChild(legendColor);
+                    legendItem.appendChild(legendText);
+                    legendContainer.appendChild(legendItem);
+                });
+            }
+        });
+    </script>
+    <!-- Include Chart.js library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"></script>
+</body>
+</html>
